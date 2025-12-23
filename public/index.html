@@ -39,12 +39,13 @@
         <!-- Seção de Resultado -->
         <div id="secaoResultado" class="card resultado" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2>✨ Resultado do Sorteio</h2>
+                <h2>✨ Sorteio Realizado!</h2>
                 <button onclick="resetarSorteio()" class="btn-reset">🔄 Novo Sorteio</button>
             </div>
+            <p>Compartilhe os links abaixo com cada pessoa:</p>
             <p class="data-sorteio" id="dataSorteio"></p>
             
-            <div id="listaResultados" class="lista-resultados"></div>
+            <div id="listaLinks" class="lista-links"></div>
         </div>
     </div>
 
@@ -58,9 +59,9 @@
                 const response = await fetch('/api/sorteio');
                 const data = await response.json();
                 
-                if (data.existe && data.sorteio.pessoas.length > 0) {
-                    sorteioAtual = data.sorteio;
-                    mostrarResultado();
+                if (data.existe && data.pessoas.length > 0) {
+                    // Já existe um sorteio, mostrar mensagem
+                    mostrarMensagemSorteioExistente(data);
                 } else {
                     mostrarCadastro();
                 }
@@ -75,24 +76,56 @@
             document.getElementById('secaoResultado').style.display = 'none';
         }
 
-        function mostrarResultado() {
+        function mostrarMensagemSorteioExistente(data) {
             document.getElementById('secaoCadastro').style.display = 'none';
             document.getElementById('secaoResultado').style.display = 'block';
             
             // Atualizar data do sorteio
-            if (sorteioAtual.dataCriacao) {
-                const data = new Date(sorteioAtual.dataCriacao);
+            if (data.dataCriacao) {
+                const dataSorteio = new Date(data.dataCriacao);
                 document.getElementById('dataSorteio').textContent = 
-                    `Sorteio realizado em ${data.toLocaleDateString('pt-BR')} às ${data.toLocaleTimeString('pt-BR')}`;
+                    `Sorteio realizado em ${dataSorteio.toLocaleDateString('pt-BR')} às ${dataSorteio.toLocaleTimeString('pt-BR')}`;
             }
             
-            // Mostrar resultados
-            const listaResultados = document.getElementById('listaResultados');
-            listaResultados.innerHTML = sorteioAtual.resultados.map(resultado => `
-                <div class="resultado-item">
-                    <span class="pessoa-nome">👤 ${resultado.nome}</span>
-                    <span class="seta">→</span>
-                    <span class="tirou-nome">🎁 ${resultado.tirou}</span>
+            // Mostrar mensagem de que já existe sorteio
+            const listaLinks = document.getElementById('listaLinks');
+            listaLinks.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; background: #f9f9f9; border-radius: 12px;">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">📋 Sorteio já realizado</h3>
+                    <p style="color: #666; margin-bottom: 10px;">Participantes: ${data.pessoas.join(', ')}</p>
+                    <p style="color: #999; font-size: 14px;">Os links já foram gerados anteriormente.</p>
+                    <p style="color: #999; font-size: 14px; margin-top: 10px;">Se perdeu os links, clique em "🔄 Novo Sorteio" e refaça.</p>
+                </div>
+            `;
+        }
+
+        function mostrarResultado(links) {
+            document.getElementById('secaoCadastro').style.display = 'none';
+            document.getElementById('secaoResultado').style.display = 'block';
+            
+            document.getElementById('dataSorteio').textContent = 
+                `Sorteio realizado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`;
+            
+            // Mostrar links
+            const listaLinks = document.getElementById('listaLinks');
+            listaLinks.innerHTML = links.map(link => `
+                <div class="link-item">
+                    <strong>${link.nome}:</strong>
+                    <div class="link-container">
+                        <input 
+                            type="text" 
+                            value="${link.link}" 
+                            readonly 
+                            id="link-${link.nome}"
+                            class="link-input"
+                        >
+                        <button 
+                            onclick="copiarLink('link-${link.nome}')" 
+                            class="btn-copy"
+                        >
+                            📋 Copiar
+                        </button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -166,8 +199,7 @@
                 const data = await response.json();
                 
                 if (data.sucesso) {
-                    sorteioAtual = data.sorteio;
-                    mostrarResultado();
+                    mostrarResultado(data.links);
                 } else {
                     alert('Erro: ' + data.erro);
                     btn.disabled = false;
@@ -178,6 +210,20 @@
                 btn.disabled = false;
                 btn.textContent = 'Realizar Sorteio';
             }
+        }
+
+        function copiarLink(inputId) {
+            const input = document.getElementById(inputId);
+            input.select();
+            document.execCommand('copy');
+            
+            const btn = event.target;
+            const textoOriginal = btn.textContent;
+            btn.textContent = '✅ Copiado!';
+            
+            setTimeout(() => {
+                btn.textContent = textoOriginal;
+            }, 2000);
         }
 
         async function resetarSorteio() {
@@ -194,7 +240,6 @@
                 
                 if (data.sucesso) {
                     pessoas = [];
-                    sorteioAtual = null;
                     atualizarLista();
                     atualizarBotaoSortear();
                     mostrarCadastro();

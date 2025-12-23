@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amigo Oculto - Revelação</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎁 Amigo Oculto</h1>
+        
+        <div class="card revelacao" id="conteudo">
+            <div class="loading">
+                <h1>🎅</h1>
+                <p>Carregando seu amigo oculto...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function revelarAmigoOculto() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            
+            if (!token) {
+                mostrarErro('Link inválido! Token não encontrado.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/revelar?token=${token}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    mostrarResultado(data.nome, data.tirou);
+                } else {
+                    mostrarErro(data.erro || 'Erro ao buscar informações do sorteio');
+                }
+            } catch (erro) {
+                mostrarErro('Erro ao conectar com o servidor: ' + erro.message);
+            }
+        }
+        
+        function mostrarResultado(nome, tirou) {
+            const conteudo = document.getElementById('conteudo');
+            conteudo.innerHTML = `
+                <div class="resultado-revelacao">
+                    <h1>🎉</h1>
+                    <h2>Olá, ${nome}!</h2>
+                    <p class="subtitle">Você tirou:</p>
+                    <div class="nome-sorteado">${tirou}</div>
+                    <p class="mensagem-final">🎁 Boas compras e bom amigo oculto! 🎅</p>
+                </div>
+            `;
+        }
+        
+        function mostrarErro(mensagem) {
+            const conteudo = document.getElementById('conteudo');
+            conteudo.innerHTML = `
+                <div class="erro">
+                    <h1>😕</h1>
+                    <h2>Ops!</h2>
+                    <p>${mensagem}</p>
+                </div>
+            `;
+        }
+        
+        // Carregar ao iniciar
+        window.addEventListener('DOMContentLoaded', revelarAmigoOculto);
+    </script>
+</body>
+</html>
+

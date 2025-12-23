@@ -24,7 +24,7 @@ app.use(express.static('public'));
 // Armazenamento em memória - SORTEIO ÚNICO GLOBAL
 let sorteioGlobal = {
   pessoas: [],
-  resultados: [],
+  participantes: [], // Array com {nome, tirou, token}
   dataCriacao: null
 };
 
@@ -69,11 +69,12 @@ function realizarSorteio(pessoas) {
   throw new Error('Não foi possível realizar o sorteio');
 }
 
-// Rota para obter o sorteio atual
+// Rota para verificar se existe sorteio
 app.get('/api/sorteio', (req, res) => {
   res.json({
     existe: sorteioGlobal.pessoas.length > 0,
-    sorteio: sorteioGlobal
+    pessoas: sorteioGlobal.pessoas,
+    dataCriacao: sorteioGlobal.dataCriacao
   });
 });
 
@@ -88,22 +89,33 @@ app.post('/api/sortear', (req, res) => {
   try {
     const sorteados = realizarSorteio(pessoas);
     
-    // Criar resultados do sorteio
-    const resultados = pessoas.map((pessoa, index) => ({
-      nome: pessoa,
-      tirou: sorteados[index]
-    }));
+    // Criar tokens únicos para cada pessoa
+    const participantes = pessoas.map((pessoa, index) => {
+      const token = uuidv4();
+      return {
+        nome: pessoa,
+        tirou: sorteados[index],
+        token: token
+      };
+    });
     
     // Atualizar sorteio global
     sorteioGlobal = {
       pessoas: pessoas,
-      resultados: resultados,
+      participantes: participantes,
       dataCriacao: new Date()
     };
     
+    // Retornar os links
+    const baseUrl = getBaseUrl(req);
+    const links = participantes.map(p => ({
+      nome: p.nome,
+      link: `${baseUrl}/revelar.html?token=${p.token}`
+    }));
+    
     res.json({ 
       sucesso: true,
-      sorteio: sorteioGlobal
+      links: links
     });
     
   } catch (erro) {
@@ -111,11 +123,35 @@ app.post('/api/sortear', (req, res) => {
   }
 });
 
+// Rota para revelar quem a pessoa tirou
+app.get('/api/revelar', (req, res) => {
+  const { token } = req.query;
+  
+  if (!token) {
+    return res.status(400).json({ erro: 'Token é obrigatório' });
+  }
+  
+  if (sorteioGlobal.participantes.length === 0) {
+    return res.status(404).json({ erro: 'Nenhum sorteio foi realizado ainda' });
+  }
+  
+  const participante = sorteioGlobal.participantes.find(p => p.token === token);
+  
+  if (!participante) {
+    return res.status(404).json({ erro: 'Token inválido' });
+  }
+  
+  res.json({
+    nome: participante.nome,
+    tirou: participante.tirou
+  });
+});
+
 // Rota para resetar o sorteio
 app.post('/api/reset', (req, res) => {
   sorteioGlobal = {
     pessoas: [],
-    resultados: [],
+    participantes: [],
     dataCriacao: null
   };
   
