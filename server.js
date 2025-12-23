@@ -136,7 +136,13 @@ app.get('/api/revelar', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🎁 Servidor rodando em http://localhost:${PORT}`);
-});
+// Exportar o app para o Vercel
+module.exports = app;
+
+// Iniciar servidor apenas em desenvolvimento local (não no Vercel)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🎁 Servidor rodando em http://localhost:${PORT}`);
+  });
+}
 
