@@ -1,14 +1,17 @@
-# 🎁 Sistema de Amigo Oculto
+# 🎁 Sistema de Amigo Oculto Compartilhado
 
-Sistema simples para realizar sorteios de amigo oculto e compartilhar links individuais com cada participante.
+Sistema simples para realizar sorteio de amigo oculto onde todos veem o mesmo resultado.
 
 ## 📋 Funcionalidades
 
 - ✅ Cadastro de participantes
 - ✅ Sorteio automático garantindo que ninguém tire a si mesmo
-- ✅ Geração de links únicos para cada pessoa
+- ✅ **Sorteio único compartilhado** - todos que acessam veem o mesmo resultado
+- ✅ **Persistência em memória** - o sorteio fica salvo até alguém resetar
+- ✅ **Botão de Reset** - fazer um novo sorteio quando quiser
 - ✅ Interface simples e intuitiva
 - ✅ Sem necessidade de login
+- ✅ Atualização automática - se alguém fizer o sorteio, todos veem
 
 ## 🚀 Como usar
 
@@ -31,11 +34,15 @@ O servidor iniciará em: http://localhost:3000
 1. Acesse http://localhost:3000 no navegador
 2. Adicione os nomes dos participantes
 3. Clique em "Realizar Sorteio"
-4. Copie e compartilhe cada link com a respectiva pessoa
+4. **Todos veem o resultado completo!** 🎉
 
-### 4. Ver resultado
+### 4. Compartilhar
 
-Cada pessoa deve acessar o link único que você compartilhou para ver quem tirou no amigo oculto.
+Compartilhe o link http://localhost:3000 com todos - qualquer pessoa que acessar verá o mesmo sorteio!
+
+### 5. Fazer novo sorteio
+
+Quando quiser fazer um novo sorteio, clique no botão "🔄 Novo Sorteio" no topo da página.
 
 ## 🛠️ Tecnologias
 
@@ -45,10 +52,12 @@ Cada pessoa deve acessar o link único que você compartilhou para ver quem tiro
 
 ## ⚠️ Observações
 
-- Os dados ficam armazenados na memória do servidor
-- Se o servidor for reiniciado, os sorteios anteriores serão perdidos
-- Não há autenticação - qualquer pessoa com o link pode ver o resultado
-- Para uso temporário e em ambientes confiáveis
+- **Sorteio único compartilhado**: Todos que acessam o site veem o mesmo resultado
+- Os dados ficam armazenados na memória do servidor até alguém clicar em "Reset"
+- Se o servidor for reiniciado, o sorteio será perdido
+- Não há autenticação - qualquer pessoa pode acessar e ver o resultado
+- Qualquer pessoa pode resetar o sorteio clicando no botão "Novo Sorteio"
+- Ideal para grupos pequenos e em ambientes confiáveis
 
 ## 📝 Licença
 
