@@ -58,18 +58,18 @@ Para fazer um novo sorteio:
 - **Sorteio único**: Apenas um sorteio ativo por vez
 - **Privacidade**: Cada pessoa vê apenas quem ela tirou através de seu link individual
 - **Persistência**: 
-  - 🚀 **No Vercel (produção)**: Usa Vercel KV - dados persistem permanentemente!
+  - 🚀 **No Vercel (produção)**: Usa Upstash Redis - dados persistem permanentemente!
   - 💾 **Local (desenvolvimento)**: Usa memória - dados somem ao reiniciar
 - Não há autenticação - qualquer pessoa com o link pode ver seu resultado
 - Qualquer pessoa que acessa a página principal pode resetar o sorteio
 - **Importante**: Guarde os links! Se perdê-los, terá que resetar e fazer novo sorteio
 - Ideal para grupos pequenos e em ambientes confiáveis
 
-### 🔥 Setup Vercel KV (Produção)
+### 🔥 Setup Upstash Redis (Produção - GRÁTIS)
 
-Para persistência permanente no Vercel, veja: **[SETUP_VERCEL_KV.md](SETUP_VERCEL_KV.md)**
+Para persistência permanente no Vercel, veja: **[SETUP_UPSTASH.md](SETUP_UPSTASH.md)**
 
-É rápido (5 minutos) e grátis! Seus sorteios nunca mais vão sumir.
+É rápido (5 minutos), 100% grátis e sem cartão! Seus sorteios nunca mais vão sumir.
 
 ## 📝 Licença
 

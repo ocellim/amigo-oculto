@@ -22,19 +22,23 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // ============================================
-// PERSISTÊNCIA - KV (Vercel) ou Memória (Local)
+// PERSISTÊNCIA - Upstash Redis ou Memória (Local)
 // ============================================
-let kv;
-let useKV = false;
+let redis;
+let useRedis = false;
 
-// Tentar importar KV apenas se estiver no Vercel
-if (process.env.KV_REST_API_URL) {
+// Tentar conectar ao Upstash Redis se variáveis estiverem configuradas
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
   try {
-    kv = require('@vercel/kv').kv;
-    useKV = true;
-    console.log('✅ Usando Vercel KV para persistência');
+    const { Redis } = require('@upstash/redis');
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+    useRedis = true;
+    console.log('✅ Usando Upstash Redis para persistência');
   } catch (error) {
-    console.log('⚠️ Vercel KV não disponível, usando memória local');
+    console.log('⚠️ Upstash Redis não disponível, usando memória local');
   }
 } else {
   console.log('💾 Usando memória local (desenvolvimento)');
@@ -47,18 +51,18 @@ let sorteioMemoria = {
   dataCriacao: null
 };
 
-// Funções de persistência com abstração KV/Memória
+// Funções de persistência com abstração Redis/Memória
 async function getSorteio() {
-  if (useKV) {
-    const sorteio = await kv.get('sorteio_global');
+  if (useRedis) {
+    const sorteio = await redis.get('sorteio_global');
     return sorteio || { pessoas: [], participantes: [], dataCriacao: null };
   }
   return sorteioMemoria;
 }
 
 async function setSorteio(sorteio) {
-  if (useKV) {
-    await kv.set('sorteio_global', sorteio);
+  if (useRedis) {
+    await redis.set('sorteio_global', sorteio);
   } else {
     sorteioMemoria = sorteio;
   }
@@ -66,8 +70,8 @@ async function setSorteio(sorteio) {
 
 async function resetSorteio() {
   const sorteioVazio = { pessoas: [], participantes: [], dataCriacao: null };
-  if (useKV) {
-    await kv.set('sorteio_global', sorteioVazio);
+  if (useRedis) {
+    await redis.set('sorteio_global', sorteioVazio);
   } else {
     sorteioMemoria = sorteioVazio;
   }
