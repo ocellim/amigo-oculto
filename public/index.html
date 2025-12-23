@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amigo Oculto - Sorteio</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎁 Amigo Oculto</h1>
+        <p class="subtitle">Cadastre as pessoas e faça o sorteio</p>
+        
+        <div class="card">
+            <h2>Adicionar Participantes</h2>
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="nomePessoa" 
+                    placeholder="Digite o nome da pessoa"
+                    onkeypress="if(event.key==='Enter') adicionarPessoa()"
+                >
+                <button onclick="adicionarPessoa()" class="btn-add">Adicionar</button>
+            </div>
+            
+            <div id="listaPessoas" class="lista-pessoas"></div>
+            
+            <button 
+                onclick="realizarSorteio()" 
+                class="btn-sortear"
+                id="btnSortear"
+                disabled
+            >
+                Realizar Sorteio
+            </button>
+        </div>
+        
+        <div id="resultado" class="card resultado" style="display: none;">
+            <h2>✨ Sorteio Realizado!</h2>
+            <p>Compartilhe os links abaixo com cada pessoa:</p>
+            <div id="listaLinks" class="lista-links"></div>
+        </div>
+    </div>
+
+    <script>
+        let pessoas = [];
+
+        function adicionarPessoa() {
+            const input = document.getElementById('nomePessoa');
+            const nome = input.value.trim();
+            
+            if (nome === '') {
+                alert('Por favor, digite um nome');
+                return;
+            }
+            
+            if (pessoas.includes(nome)) {
+                alert('Esta pessoa já foi adicionada');
+                return;
+            }
+            
+            pessoas.push(nome);
+            input.value = '';
+            atualizarLista();
+            atualizarBotaoSortear();
+        }
+
+        function removerPessoa(index) {
+            pessoas.splice(index, 1);
+            atualizarLista();
+            atualizarBotaoSortear();
+        }
+
+        function atualizarLista() {
+            const lista = document.getElementById('listaPessoas');
+            
+            if (pessoas.length === 0) {
+                lista.innerHTML = '<p class="empty-message">Nenhum participante adicionado ainda</p>';
+                return;
+            }
+            
+            lista.innerHTML = pessoas.map((pessoa, index) => `
+                <div class="pessoa-item">
+                    <span>${pessoa}</span>
+                    <button onclick="removerPessoa(${index})" class="btn-remove">❌</button>
+                </div>
+            `).join('');
+        }
+
+        function atualizarBotaoSortear() {
+            const btn = document.getElementById('btnSortear');
+            btn.disabled = pessoas.length < 2;
+        }
+
+        async function realizarSorteio() {
+            if (pessoas.length < 2) {
+                alert('É necessário pelo menos 2 pessoas para o sorteio');
+                return;
+            }
+            
+            const btn = document.getElementById('btnSortear');
+            btn.disabled = true;
+            btn.textContent = 'Sorteando...';
+            
+            try {
+                const response = await fetch('/api/sortear', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ pessoas })
+                });
+                
+                const data = await response.json();
+                
+                if (data.sucesso) {
+                    mostrarResultado(data.links);
+                } else {
+                    alert('Erro: ' + data.erro);
+                    btn.disabled = false;
+                    btn.textContent = 'Realizar Sorteio';
+                }
+            } catch (erro) {
+                alert('Erro ao realizar sorteio: ' + erro.message);
+                btn.disabled = false;
+                btn.textContent = 'Realizar Sorteio';
+            }
+        }
+
+        function mostrarResultado(links) {
+            const resultado = document.getElementById('resultado');
+            const listaLinks = document.getElementById('listaLinks');
+            
+            listaLinks.innerHTML = links.map(link => `
+                <div class="link-item">
+                    <strong>${link.nome}:</strong>
+                    <div class="link-container">
+                        <input 
+                            type="text" 
+                            value="${link.link}" 
+                            readonly 
+                            id="link-${link.nome}"
+                            class="link-input"
+                        >
+                        <button 
+                            onclick="copiarLink('link-${link.nome}')" 
+                            class="btn-copy"
+                        >
+                            📋 Copiar
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            resultado.style.display = 'block';
+            resultado.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function copiarLink(inputId) {
+            const input = document.getElementById(inputId);
+            input.select();
+            document.execCommand('copy');
+            
+            const btn = event.target;
+            const textoOriginal = btn.textContent;
+            btn.textContent = '✅ Copiado!';
+            
+            setTimeout(() => {
+                btn.textContent = textoOriginal;
+            }, 2000);
+        }
+
+        // Inicializar
+        atualizarLista();
+    </script>
+</body>
+</html>
+

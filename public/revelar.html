@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amigo Oculto - Revelação</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card revelacao">
+            <div id="loading" class="loading">
+                <h1>🎁</h1>
+                <p>Carregando...</p>
+            </div>
+            
+            <div id="erro" class="erro" style="display: none;">
+                <h1>❌</h1>
+                <h2>Ops!</h2>
+                <p id="mensagemErro"></p>
+            </div>
+            
+            <div id="resultado" class="resultado-revelacao" style="display: none;">
+                <h1>🎉</h1>
+                <h2>Olá, <span id="nomeParticipante"></span>!</h2>
+                <p class="subtitle">Você tirou:</p>
+                <div class="nome-sorteado">
+                    <span id="nomeSorteado"></span>
+                </div>
+                <p class="mensagem-final">
+                    🎁 Mantenha segredo e prepare um presente especial! 🎁
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function revelarAmigo() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const sorteio = urlParams.get('sorteio');
+            
+            if (!token || !sorteio) {
+                mostrarErro('Link inválido ou incompleto');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/revelar?token=${token}&sorteio=${sorteio}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    mostrarResultado(data.nome, data.tirou);
+                } else {
+                    mostrarErro(data.erro || 'Erro ao buscar informações do sorteio');
+                }
+            } catch (erro) {
+                mostrarErro('Erro ao conectar com o servidor');
+            }
+        }
+
+        function mostrarResultado(nome, tirou) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('nomeParticipante').textContent = nome;
+            document.getElementById('nomeSorteado').textContent = tirou;
+            document.getElementById('resultado').style.display = 'block';
+        }
+
+        function mostrarErro(mensagem) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('mensagemErro').textContent = mensagem;
+            document.getElementById('erro').style.display = 'block';
+        }
+
+        // Revelar automaticamente ao carregar a página
+        revelarAmigo();
+    </script>
+</body>
+</html>
+
