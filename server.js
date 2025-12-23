@@ -24,6 +24,11 @@ app.use(express.static('public'));
 // Armazenamento em memória
 const sorteios = {};
 
+// Rota raiz - servir index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Função para embaralhar array
 function shuffle(array) {
   const arr = [...array];
