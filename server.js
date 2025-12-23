@@ -21,8 +21,12 @@ const BASE_URL = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
 app.use(express.json());
 app.use(express.static('public'));
 
-// Armazenamento em memória
-const sorteios = {};
+// Armazenamento em memória - SORTEIO ÚNICO GLOBAL
+let sorteioGlobal = {
+  pessoas: [],
+  resultados: [],
+  dataCriacao: null
+};
 
 // Rota raiz - servir index.html
 app.get('/', (req, res) => {
@@ -65,7 +69,15 @@ function realizarSorteio(pessoas) {
   throw new Error('Não foi possível realizar o sorteio');
 }
 
-// Rota para criar um novo sorteio
+// Rota para obter o sorteio atual
+app.get('/api/sorteio', (req, res) => {
+  res.json({
+    existe: sorteioGlobal.pessoas.length > 0,
+    sorteio: sorteioGlobal
+  });
+});
+
+// Rota para criar/atualizar o sorteio único
 app.post('/api/sortear', (req, res) => {
   const { pessoas } = req.body;
   
@@ -75,34 +87,23 @@ app.post('/api/sortear', (req, res) => {
   
   try {
     const sorteados = realizarSorteio(pessoas);
-    const sorteioId = uuidv4();
     
-    // Criar tokens únicos para cada pessoa
-    const participantes = pessoas.map((pessoa, index) => {
-      const token = uuidv4();
-      return {
-        nome: pessoa,
-        tirou: sorteados[index],
-        token: token
-      };
-    });
+    // Criar resultados do sorteio
+    const resultados = pessoas.map((pessoa, index) => ({
+      nome: pessoa,
+      tirou: sorteados[index]
+    }));
     
-    sorteios[sorteioId] = {
-      participantes: participantes,
+    // Atualizar sorteio global
+    sorteioGlobal = {
+      pessoas: pessoas,
+      resultados: resultados,
       dataCriacao: new Date()
     };
     
-    // Retornar os links
-    const baseUrl = getBaseUrl(req);
-    const links = participantes.map(p => ({
-      nome: p.nome,
-      link: `${baseUrl}/revelar.html?token=${p.token}&sorteio=${sorteioId}`
-    }));
-    
     res.json({ 
       sucesso: true,
-      sorteioId: sorteioId,
-      links: links
+      sorteio: sorteioGlobal
     });
     
   } catch (erro) {
@@ -110,31 +111,20 @@ app.post('/api/sortear', (req, res) => {
   }
 });
 
-// Rota para revelar quem a pessoa tirou
-app.get('/api/revelar', (req, res) => {
-  const { token, sorteio } = req.query;
+// Rota para resetar o sorteio
+app.post('/api/reset', (req, res) => {
+  sorteioGlobal = {
+    pessoas: [],
+    resultados: [],
+    dataCriacao: null
+  };
   
-  if (!token || !sorteio) {
-    return res.status(400).json({ erro: 'Token e sorteio são obrigatórios' });
-  }
-  
-  const sorteioData = sorteios[sorteio];
-  
-  if (!sorteioData) {
-    return res.status(404).json({ erro: 'Sorteio não encontrado' });
-  }
-  
-  const participante = sorteioData.participantes.find(p => p.token === token);
-  
-  if (!participante) {
-    return res.status(404).json({ erro: 'Participante não encontrado' });
-  }
-  
-  res.json({
-    nome: participante.nome,
-    tirou: participante.tirou
+  res.json({ 
+    sucesso: true,
+    mensagem: 'Sorteio resetado com sucesso'
   });
 });
+
 
 // Exportar o app para o Vercel
 module.exports = app;

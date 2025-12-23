@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amigo Oculto - Sorteio</title>
+    <title>Amigo Oculto - Sorteio Compartilhado</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <h1>🎁 Amigo Oculto</h1>
-        <p class="subtitle">Cadastre as pessoas e faça o sorteio</p>
+        <p class="subtitle">Sorteio compartilhado - todos veem o mesmo resultado!</p>
         
-        <div class="card">
+        <!-- Seção de Cadastro -->
+        <div id="secaoCadastro" class="card">
             <h2>Adicionar Participantes</h2>
             <div class="input-group">
                 <input 
@@ -35,15 +36,66 @@
             </button>
         </div>
         
-        <div id="resultado" class="card resultado" style="display: none;">
-            <h2>✨ Sorteio Realizado!</h2>
-            <p>Compartilhe os links abaixo com cada pessoa:</p>
-            <div id="listaLinks" class="lista-links"></div>
+        <!-- Seção de Resultado -->
+        <div id="secaoResultado" class="card resultado" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>✨ Resultado do Sorteio</h2>
+                <button onclick="resetarSorteio()" class="btn-reset">🔄 Novo Sorteio</button>
+            </div>
+            <p class="data-sorteio" id="dataSorteio"></p>
+            
+            <div id="listaResultados" class="lista-resultados"></div>
         </div>
     </div>
 
     <script>
         let pessoas = [];
+        let sorteioAtual = null;
+
+        // Carregar sorteio existente ao iniciar
+        async function carregarSorteio() {
+            try {
+                const response = await fetch('/api/sorteio');
+                const data = await response.json();
+                
+                if (data.existe && data.sorteio.pessoas.length > 0) {
+                    sorteioAtual = data.sorteio;
+                    mostrarResultado();
+                } else {
+                    mostrarCadastro();
+                }
+            } catch (erro) {
+                console.error('Erro ao carregar sorteio:', erro);
+                mostrarCadastro();
+            }
+        }
+
+        function mostrarCadastro() {
+            document.getElementById('secaoCadastro').style.display = 'block';
+            document.getElementById('secaoResultado').style.display = 'none';
+        }
+
+        function mostrarResultado() {
+            document.getElementById('secaoCadastro').style.display = 'none';
+            document.getElementById('secaoResultado').style.display = 'block';
+            
+            // Atualizar data do sorteio
+            if (sorteioAtual.dataCriacao) {
+                const data = new Date(sorteioAtual.dataCriacao);
+                document.getElementById('dataSorteio').textContent = 
+                    `Sorteio realizado em ${data.toLocaleDateString('pt-BR')} às ${data.toLocaleTimeString('pt-BR')}`;
+            }
+            
+            // Mostrar resultados
+            const listaResultados = document.getElementById('listaResultados');
+            listaResultados.innerHTML = sorteioAtual.resultados.map(resultado => `
+                <div class="resultado-item">
+                    <span class="pessoa-nome">👤 ${resultado.nome}</span>
+                    <span class="seta">→</span>
+                    <span class="tirou-nome">🎁 ${resultado.tirou}</span>
+                </div>
+            `).join('');
+        }
 
         function adicionarPessoa() {
             const input = document.getElementById('nomePessoa');
@@ -114,7 +166,8 @@
                 const data = await response.json();
                 
                 if (data.sucesso) {
-                    mostrarResultado(data.links);
+                    sorteioAtual = data.sorteio;
+                    mostrarResultado();
                 } else {
                     alert('Erro: ' + data.erro);
                     btn.disabled = false;
@@ -127,52 +180,35 @@
             }
         }
 
-        function mostrarResultado(links) {
-            const resultado = document.getElementById('resultado');
-            const listaLinks = document.getElementById('listaLinks');
+        async function resetarSorteio() {
+            if (!confirm('Tem certeza que deseja fazer um novo sorteio? O atual será perdido!')) {
+                return;
+            }
             
-            listaLinks.innerHTML = links.map(link => `
-                <div class="link-item">
-                    <strong>${link.nome}:</strong>
-                    <div class="link-container">
-                        <input 
-                            type="text" 
-                            value="${link.link}" 
-                            readonly 
-                            id="link-${link.nome}"
-                            class="link-input"
-                        >
-                        <button 
-                            onclick="copiarLink('link-${link.nome}')" 
-                            class="btn-copy"
-                        >
-                            📋 Copiar
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-            
-            resultado.style.display = 'block';
-            resultado.scrollIntoView({ behavior: 'smooth' });
+            try {
+                const response = await fetch('/api/reset', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.sucesso) {
+                    pessoas = [];
+                    sorteioAtual = null;
+                    atualizarLista();
+                    atualizarBotaoSortear();
+                    mostrarCadastro();
+                }
+            } catch (erro) {
+                alert('Erro ao resetar sorteio: ' + erro.message);
+            }
         }
 
-        function copiarLink(inputId) {
-            const input = document.getElementById(inputId);
-            input.select();
-            document.execCommand('copy');
-            
-            const btn = event.target;
-            const textoOriginal = btn.textContent;
-            btn.textContent = '✅ Copiado!';
-            
-            setTimeout(() => {
-                btn.textContent = textoOriginal;
-            }, 2000);
-        }
-
-        // Inicializar
-        atualizarLista();
+        // Inicializar ao carregar a página
+        window.addEventListener('DOMContentLoaded', () => {
+            carregarSorteio();
+            atualizarLista();
+        });
     </script>
 </body>
 </html>
-
