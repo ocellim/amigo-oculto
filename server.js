@@ -4,6 +4,17 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// URL base - usa VERCEL_URL em produção ou localhost em desenvolvimento
+const getBaseUrl = (req) => {
+  // Se estiver no Vercel, usa o host da requisição
+  if (process.env.VERCEL) {
+    return `https://${req.get('host')}`;
+  }
+  // Em desenvolvimento local
+  return `http://localhost:${PORT}`;
+};
+
 const BASE_URL = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${PORT}`;
 
 // Middleware
@@ -77,9 +88,10 @@ app.post('/api/sortear', (req, res) => {
     };
     
     // Retornar os links
+    const baseUrl = getBaseUrl(req);
     const links = participantes.map(p => ({
       nome: p.nome,
-      link: `${BASE_URL}/revelar.html?token=${p.token}&sorteio=${sorteioId}`
+      link: `${baseUrl}/revelar.html?token=${p.token}&sorteio=${sorteioId}`
     }));
     
     res.json({ 

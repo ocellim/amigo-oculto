@@ -56,6 +56,17 @@ Após o deploy, você receberá uma URL como:
 
 Use essa URL para acessar seu sistema de amigo oculto!
 
+## ⚙️ Variáveis de Ambiente
+
+**✅ Não precisa configurar nada!**
+
+O Vercel fornece automaticamente todas as variáveis necessárias:
+- `VERCEL=1` (indica ambiente Vercel)
+- `VERCEL_URL` (URL do seu projeto)
+- `PORT` (porta do servidor)
+
+Veja `CONFIGURACAO_VERCEL.md` para mais detalhes sobre configuração avançada.
+
 ## ⚠️ Importante
 
 ⚠️ **AVISO**: Os sorteios ficam armazenados na memória do servidor.
