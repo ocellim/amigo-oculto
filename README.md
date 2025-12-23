@@ -57,12 +57,19 @@ Para fazer um novo sorteio:
 
 - **Sorteio único**: Apenas um sorteio ativo por vez
 - **Privacidade**: Cada pessoa vê apenas quem ela tirou através de seu link individual
-- Os dados ficam armazenados na memória do servidor até alguém clicar em "Reset"
-- Se o servidor for reiniciado, o sorteio será perdido
+- **Persistência**: 
+  - 🚀 **No Vercel (produção)**: Usa Vercel KV - dados persistem permanentemente!
+  - 💾 **Local (desenvolvimento)**: Usa memória - dados somem ao reiniciar
 - Não há autenticação - qualquer pessoa com o link pode ver seu resultado
 - Qualquer pessoa que acessa a página principal pode resetar o sorteio
 - **Importante**: Guarde os links! Se perdê-los, terá que resetar e fazer novo sorteio
 - Ideal para grupos pequenos e em ambientes confiáveis
+
+### 🔥 Setup Vercel KV (Produção)
+
+Para persistência permanente no Vercel, veja: **[SETUP_VERCEL_KV.md](SETUP_VERCEL_KV.md)**
+
+É rápido (5 minutos) e grátis! Seus sorteios nunca mais vão sumir.
 
 ## 📝 Licença
 

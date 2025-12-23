@@ -21,12 +21,58 @@ const BASE_URL = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
 app.use(express.json());
 app.use(express.static('public'));
 
-// Armazenamento em memória - SORTEIO ÚNICO GLOBAL
-let sorteioGlobal = {
+// ============================================
+// PERSISTÊNCIA - KV (Vercel) ou Memória (Local)
+// ============================================
+let kv;
+let useKV = false;
+
+// Tentar importar KV apenas se estiver no Vercel
+if (process.env.KV_REST_API_URL) {
+  try {
+    kv = require('@vercel/kv').kv;
+    useKV = true;
+    console.log('✅ Usando Vercel KV para persistência');
+  } catch (error) {
+    console.log('⚠️ Vercel KV não disponível, usando memória local');
+  }
+} else {
+  console.log('💾 Usando memória local (desenvolvimento)');
+}
+
+// Armazenamento em memória (fallback para desenvolvimento local)
+let sorteioMemoria = {
   pessoas: [],
-  participantes: [], // Array com {nome, tirou, token}
+  participantes: [],
   dataCriacao: null
 };
+
+// Funções de persistência com abstração KV/Memória
+async function getSorteio() {
+  if (useKV) {
+    const sorteio = await kv.get('sorteio_global');
+    return sorteio || { pessoas: [], participantes: [], dataCriacao: null };
+  }
+  return sorteioMemoria;
+}
+
+async function setSorteio(sorteio) {
+  if (useKV) {
+    await kv.set('sorteio_global', sorteio);
+  } else {
+    sorteioMemoria = sorteio;
+  }
+}
+
+async function resetSorteio() {
+  const sorteioVazio = { pessoas: [], participantes: [], dataCriacao: null };
+  if (useKV) {
+    await kv.set('sorteio_global', sorteioVazio);
+  } else {
+    sorteioMemoria = sorteioVazio;
+  }
+  return sorteioVazio;
+}
 
 // Rota raiz - servir index.html
 app.get('/', (req, res) => {
@@ -70,16 +116,21 @@ function realizarSorteio(pessoas) {
 }
 
 // Rota para verificar se existe sorteio
-app.get('/api/sorteio', (req, res) => {
-  res.json({
-    existe: sorteioGlobal.pessoas.length > 0,
-    pessoas: sorteioGlobal.pessoas,
-    dataCriacao: sorteioGlobal.dataCriacao
-  });
+app.get('/api/sorteio', async (req, res) => {
+  try {
+    const sorteio = await getSorteio();
+    res.json({
+      existe: sorteio.pessoas.length > 0,
+      pessoas: sorteio.pessoas,
+      dataCriacao: sorteio.dataCriacao
+    });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao buscar sorteio: ' + erro.message });
+  }
 });
 
 // Rota para criar/atualizar o sorteio único
-app.post('/api/sortear', (req, res) => {
+app.post('/api/sortear', async (req, res) => {
   const { pessoas } = req.body;
   
   if (!pessoas || pessoas.length < 2) {
@@ -99,12 +150,14 @@ app.post('/api/sortear', (req, res) => {
       };
     });
     
-    // Atualizar sorteio global
-    sorteioGlobal = {
+    // Atualizar sorteio global (KV ou memória)
+    const novoSorteio = {
       pessoas: pessoas,
       participantes: participantes,
-      dataCriacao: new Date()
+      dataCriacao: new Date().toISOString()
     };
+    
+    await setSorteio(novoSorteio);
     
     // Retornar os links
     const baseUrl = getBaseUrl(req);
@@ -124,41 +177,46 @@ app.post('/api/sortear', (req, res) => {
 });
 
 // Rota para revelar quem a pessoa tirou
-app.get('/api/revelar', (req, res) => {
+app.get('/api/revelar', async (req, res) => {
   const { token } = req.query;
   
   if (!token) {
     return res.status(400).json({ erro: 'Token é obrigatório' });
   }
   
-  if (sorteioGlobal.participantes.length === 0) {
-    return res.status(404).json({ erro: 'Nenhum sorteio foi realizado ainda' });
+  try {
+    const sorteio = await getSorteio();
+    
+    if (sorteio.participantes.length === 0) {
+      return res.status(404).json({ erro: 'Nenhum sorteio foi realizado ainda' });
+    }
+    
+    const participante = sorteio.participantes.find(p => p.token === token);
+    
+    if (!participante) {
+      return res.status(404).json({ erro: 'Token inválido' });
+    }
+    
+    res.json({
+      nome: participante.nome,
+      tirou: participante.tirou
+    });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao buscar informações: ' + erro.message });
   }
-  
-  const participante = sorteioGlobal.participantes.find(p => p.token === token);
-  
-  if (!participante) {
-    return res.status(404).json({ erro: 'Token inválido' });
-  }
-  
-  res.json({
-    nome: participante.nome,
-    tirou: participante.tirou
-  });
 });
 
 // Rota para resetar o sorteio
-app.post('/api/reset', (req, res) => {
-  sorteioGlobal = {
-    pessoas: [],
-    participantes: [],
-    dataCriacao: null
-  };
-  
-  res.json({ 
-    sucesso: true,
-    mensagem: 'Sorteio resetado com sucesso'
-  });
+app.post('/api/reset', async (req, res) => {
+  try {
+    await resetSorteio();
+    res.json({ 
+      sucesso: true,
+      mensagem: 'Sorteio resetado com sucesso'
+    });
+  } catch (erro) {
+    res.status(500).json({ erro: 'Erro ao resetar sorteio: ' + erro.message });
+  }
 });
 
 
